@@ -2,9 +2,9 @@ import torch
 import time
 import torch.nn as nn
 from sklearn.neighbors import kneighbors_graph
-from Modules import *
-from Utils import *
-from Loss import *
+from .Modules import *
+from .Utils import *
+from .Loss import *
 
 ## pca_fc + ScaledDotProductAttention + VAEplus
 class RAST(nn.Module):

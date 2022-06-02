@@ -24,12 +24,12 @@ setup(
         'Topic :: Scientific/Engineering :: Bio-Informatics'
     ],
     install_requires=[
-        'numba>=0.55.1',
-        'numpy>=1.21.5',
-        'pandas>=1.3.4',
-        'scipy>=1.5.3',
-        'scikit-learn>=1.0.2',
-        'scanpy>=1.9.1',
-        'pytorch>=1.9.1'
+        'numba',
+        'numpy',
+        'pandas',
+        'scipy',
+        'scikit-learn',
+        'scanpy',
+        'torch',
     ]
 )

@@ -10,5 +10,4 @@ past/__init__.py
 past.egg-info/PKG-INFO
 past.egg-info/SOURCES.txt
 past.egg-info/dependency_links.txt
-past.egg-info/requires.txt
 past.egg-info/top_level.txt

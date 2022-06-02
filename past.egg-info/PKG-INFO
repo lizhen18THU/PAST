@@ -7,7 +7,6 @@ Author: Zhen Li
 Author-email: lizhen18THU@163.com
 License: MIT License
 Keywords: pip,past
-Platform: UNKNOWN
 Classifier: Intended Audience :: Science/Research
 Classifier: License :: OSI Approved :: MIT License
 Classifier: Programming Language :: Python :: 3.8
@@ -19,4 +18,3 @@ Requires-Python: >3.6.0
 License-File: LICENSE
 
 PAST: a Prior-based self-Attention method for Spatial Transcriptomics
-
