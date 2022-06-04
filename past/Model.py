@@ -6,9 +6,23 @@ from .Modules import *
 from .Utils import *
 from .Loss import *
 
-## pca_fc + ScaledDotProductAttention + VAEplus
 class PAST(nn.Module):
-    def __init__(self, d_in, d_lat, k_neighbors=10, dropout=0.1):
+    """
+    PAST Model: latent feature extraction and spatial domain deciphering with a prior-based self-attention framework for spatial transcriptomics
+
+    Parameters
+    ------
+    d_in
+        number of feature of input gene expression matrix
+    d_lat
+        dimensions of latent feature
+    k_neighbors
+        number of neighbors to construct K-NN in self-attention module
+    dropout
+        dropout rate for dropout layer
+    """
+
+    def __init__(self, d_in, d_lat, k_neighbors=6, dropout=0.1):
         super().__init__()
         assert d_in > d_lat, "d_in should be larger than d_lat"
         assert k_neighbors > 0, "k_neighbors should be larger than 0"
@@ -33,7 +47,6 @@ class PAST(nn.Module):
         assert prior.shape[0] == self.d_prior, "prior weight dimension not match"
 
         prior_log_sigma = torch.log(prior.std() / 10)
-        print("prior_log_sigma:", prior_log_sigma)
         self.enc_fc1.reset_parameters(prior, prior_log_sigma)
 
     def bnn_loss(self):
@@ -47,14 +60,8 @@ class PAST(nn.Module):
 
     def encoder(self, x, knn_graph=None):
         x = torch.cat([self.enc_fc1(x), self.enc_fc2(x)], -1)
-
         x, enc_attn1 = self.enc_attn1(x, x, x, knn_graph)
-        #         x = F.relu(x, True)
-        #         x = F.elu(x)
-
         x, enc_attn2 = self.enc_attn2(x, x, x, knn_graph)
-        #         x = F.relu(x, True)
-        #         x = F.elu(x)
 
         mu = self.mu_fc(x)
         logvar = self.logvar_fc(x)
@@ -63,13 +70,7 @@ class PAST(nn.Module):
 
     def decoder(self, x, knn_graph=None):
         x, dec_attn1 = self.dec_attn1(x, x, x, knn_graph)
-        #         x = F.relu(x, True)
-        #         x = F.elu(x)
-
         x, dec_attn2 = self.dec_attn2(x, x, x, knn_graph)
-        #         x = F.relu(x, True)
-        #         x = F.elu(x)
-
         x = self.dec_fc(x)
 
         return x, {"attn1": dec_attn1, "attn2": dec_attn2}
@@ -81,6 +82,43 @@ class PAST(nn.Module):
 
     def model_train(self, sdata, rdata=None, anno_key="anno", epochs=50, lr=1e-3, batchsize=6400, weight_decay=1e-4,
                     r=0.5, alpha=1.0, beta=1.0, gamma=1.0, kappa=1.0, device=torch.device("cuda:0")):
+        """
+        Training PAST model
+
+        Parameters
+        ------
+        sdata
+            input target dataset of anndata format(preprocessed)
+        rdata
+            externel reference dataset of anndata format(not preprocessed), if None, use self-prior strategy by default
+        anno_key
+            key stored in rdata.obs implying annotation
+        epochs
+            number of epochs to train
+        lr
+            initial learning rate
+        batchsize
+            number of samples of a mini-batch
+        weight_decay
+            weight decay for regularization
+        r
+            expansion ratio for sub-graph sampling
+        alpha
+            latent vae loss coefficient
+        beta
+            adapted mean square loss coefficient
+        gamma
+            metric learning loss coefficient
+        kappa
+            bayesian prior KLD loss coefficient
+        device
+            device used for model training
+
+        Returns
+        ------
+        None
+        """
+
         avoid_overtrain = True if sdata.shape[0] > 15000 else False
 
         # construct kNN graph with spatial_mtx
@@ -100,7 +138,7 @@ class PAST(nn.Module):
             self.prior_initialize(prior_weight)
         else:
             rdata = integration(rdata, sdata)
-            rdata = preprocess(rdata, min_cells=None, target_sum=None, is_filter_MT=True, n_tops=None)
+            rdata = preprocess(rdata, min_cells=None, target_sum=None, is_filter_MT=False, n_tops=None)
             rdata = get_bulk(rdata, key=anno_key, min_samples=self.d_prior + 1)
             sc.tl.pca(rdata, n_comps=self.d_prior)
             prior_weight = torch.FloatTensor(rdata.varm["PCs"].T.copy())
@@ -110,9 +148,7 @@ class PAST(nn.Module):
         self.to(device)
         optimizer = torch.optim.Adam(optim_parameters(self), lr=lr, weight_decay=weight_decay)
         s = time.time()
-
         last_loss = 1e6
-
         loss_recorded = 1e6
         overtrain_count = 0
         converge = False
@@ -166,6 +202,24 @@ class PAST(nn.Module):
         self.freeze()
 
     def output(self, sdata, key_added="embedding", device=torch.device("cpu")):
+        """
+        Model predict
+
+        Parameters
+        ------
+        sdata
+            input target dataset of anndata format
+        key_added
+            key added to sdata.obsm to store latent feature
+        device
+            device used to predict
+
+        Returns
+        ------
+        sdata
+            input target dataset of anndata format with latent feature stored in sdata.obsm[key_added]
+        """
+
         knn_graph = kneighbors_graph(sdata.obsm["spatial"], n_neighbors=self.k_neighbors, include_self=False)
         knn_graph = torch.FloatTensor(knn_graph.toarray() + np.eye(knn_graph.shape[0]))
 

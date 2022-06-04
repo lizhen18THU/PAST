@@ -5,24 +5,55 @@ import scipy.sparse as sp
 from numba import jit
 import scanpy as sc
 from sklearn.neighbors import kneighbors_graph
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 import torch
+
 
 def setup_seed(seed):
     """
     Set random seed
-    :param seed: Number to be set as random seed for reproducibility.
-    :return: None
+
+    Parameters
+    ------
+    seed
+        Number to be set as random seed for reproducibility
+
+    Returns
+    ------
+    None
     """
+
     np.random.seed(seed)
     random.seed(seed)
-    torch.manual_seed(seed) #cpu
-    torch.cuda.manual_seed_all(seed)  #gpus
+    torch.manual_seed(seed)  # cpu
+    torch.cuda.manual_seed_all(seed)  # gpus
     torch.backends.cudnn.deterministic = True
 
 
 def DLPFC_split(adata, dataset_key, anno_key, percentage=1.0, dataset_filter=[None]):
-    assert percentage>=0 and percentage<=1
+    """
+    Based on domain annotation and dataset annotation, apply Stratified downsampling to DLPFC dataset
+
+    Parameters
+    ------
+    adata
+        Whole DLPFC containing 12 sub-datasets of anndata format
+    dataset_key
+        Key stored in adata.obs presenting different sub-datasets
+    anno_key
+        Key stored in adata.obs presenting domain annotation
+    percentage
+        Downsampling percentage
+    dataset_filter
+        Sub-datasets to be filtered
+
+    Returns
+    ------
+    adata_final
+        Downsampled DLPFC of anndata format
+    """
+
+    assert percentage >= 0 and percentage <= 1
     adata_final = None
     if not isinstance(dataset_filter, list):
         dataset_filter = list(dataset_filter)
@@ -31,20 +62,36 @@ def DLPFC_split(adata, dataset_key, anno_key, percentage=1.0, dataset_filter=[No
     datasets.sort()
     print(datasets)
     for dataset in datasets:
-        adata_dataset = adata[adata.obs[dataset_key]==dataset, :]
+        adata_dataset = adata[adata.obs[dataset_key] == dataset, :]
         labels = np.unique(adata_dataset.obs[anno_key])
         print(labels)
         for label in labels:
-            adata_cur = adata_dataset[adata_dataset.obs[anno_key]==label, :]
-#             print(adata_cur)
+            adata_cur = adata_dataset[adata_dataset.obs[anno_key] == label, :]
             if adata_final is None:
-                adata_final = adata_cur[0:int(adata_cur.X.shape[0]*percentage), :]
+                adata_final = adata_cur[0:int(adata_cur.X.shape[0] * percentage), :]
             else:
-                adata_final = sc.AnnData.concatenate(adata_final, adata_cur[0:int(adata_cur.X.shape[0]*percentage), :])
-#             print(adata_final)
+                adata_final = sc.AnnData.concatenate(adata_final,
+                                                     adata_cur[0:int(adata_cur.X.shape[0] * percentage), :])
     return adata_final
 
+
 def integration(adata_ref, adata):
+    """
+    Align the gene set of reference dataset with that of target dataset
+
+    Parameters
+    ------
+    adata_ref
+        reference dataset of anndata format
+    adata
+        target dataset of anndata format
+
+    Returns
+    ------
+    adata_ref
+        reference dataset aligned with target dataset
+    """
+
     def gene_union(express_df, target_features):
         target_features = list(map(lambda x: x.lower(), target_features))
         express_df.columns = list(map(lambda x: x.lower(), express_df.columns))
@@ -65,6 +112,24 @@ def integration(adata_ref, adata):
 
 
 def geary_genes(adata, n_tops=3000, k=30):
+    """
+    Select spatially variable genes for better downstream analysis
+
+    Parameters
+    ------
+    adata
+        target dataset of anndata format
+    n_tops
+        number of spatially variable genes to select
+    k
+        number of neighbors to consider when construct K-NN graph
+
+    Returns
+    ------
+    adata
+        target dataset of anndata format containing n_top SVGs
+    """
+
     @jit(nopython=True, parallel=True)
     def _geary(exp_mtx, data, row, col):
         N = exp_mtx.shape[0]
@@ -73,7 +138,7 @@ def geary_genes(adata, n_tops=3000, k=30):
         for i in range(exp_mtx.shape[1]):
             exp_vec = exp_mtx[:, i]
             C = (N - 1) * (data * ((exp_vec[row] - exp_vec[col]) ** 2)).sum() / (
-                        2 * sum_W * np.sum((exp_vec - exp_vec.mean()) ** 2))
+                    2 * sum_W * np.sum((exp_vec - exp_vec.mean()) ** 2))
             geary_index.append(1 - C)
         return geary_index
 
@@ -91,6 +156,33 @@ def geary_genes(adata, n_tops=3000, k=30):
 
 
 def preprocess(adata, min_cells=3, target_sum=None, is_filter_MT=True, n_tops=None, gene_method="hvg", normalize=True):
+    """
+    Data preprocess for downstream analysis
+
+    Parameters
+    ------
+    adata
+        target dataset of anndata format to be preprocessed
+    min_cells
+        number of cells in which each gene should as least express
+    target_sum
+        total gene expression to normalize each cell
+    is_filter_MT
+        whether or not to filter mitochondrial genes
+    n_tops
+        number of SVGs or HVGs to select, if None then keep all genes
+    gene_method
+        strategy to select genes, if 'hvg' then use 'seurat_v3' method applied in scanpy package to select HVGs, else if 'gearyc'
+        then use geary's c statistics to select SVGs, else keep all genes
+    normalize
+        whether or not to normalize gene expression matirx
+
+    Returns
+    ------
+    adata
+        target dataset of anndata format after preprocessing
+    """
+
     if not sp.issparse(adata.X):
         adata.X = sp.csr_matrix(adata.X)
     if min_cells is not None and min_cells > 0:
@@ -111,6 +203,26 @@ def preprocess(adata, min_cells=3, target_sum=None, is_filter_MT=True, n_tops=No
 
 
 def get_bulk(adata_ref, key, min_samples=11, r=0.5):
+    """
+    construct pseudo bulk from reference dataset according to annotation
+
+    Parameters
+    ------
+    adata_ref
+        reference dataset of anndata format
+    key
+        key of the annoatation
+    min_samples
+        minimum number of pseudo bulk samples should be constructed from reference dataset
+    r
+        ratio for sampling from reference dataset to construct pseudo bulk sample
+
+    Returns
+    ------
+    adata_bulk
+        pseudo bulk samples of anndata format
+    """
+
     index_list = []
     key_index = adata_ref.obs[key].values
     bulks = np.unique(key_index)
@@ -144,7 +256,31 @@ def get_bulk(adata_ref, key, min_samples=11, r=0.5):
 
     return adata_bulk
 
+
 def visualize(adata, keys, use_rep="embedding", library_id=None, spot_size=None, plot_spatial=True):
+    """
+    visualization for cell embedding and spatial clustering
+
+    Parameters
+    ------
+    adata
+        target dataset of anndata format
+    keys
+        keys to visualize stored in adata.obs
+    use_rep
+        embedding storing in adata.obsm for visualizing
+    library_id
+        visualize spatial clustering on top of tissue histology, specific to 10X Visium
+    spot_size
+        spot size for spatial clustering visualization
+    plot_spatial
+        whether or not to visualize spatial clustering
+
+    Returns
+    ------
+    None
+    """
+
     assert isinstance(keys, list)
     if "neighbors" not in adata.uns.keys():
         sc.pp.neighbors(adata, use_rep=use_rep)
@@ -162,6 +298,19 @@ def visualize(adata, keys, use_rep="embedding", library_id=None, spot_size=None,
 
 
 class StDataset(Dataset):
+    """
+    Spatial Transcriptomic Dataset
+    
+    Parameters
+    ------
+    data
+        gene expression of the dataset
+    knn
+        K-NN graph constructed according the spatial coordinate of dataset
+    metric
+        spatial prior graph constructed according the spatial coordinate of dataset
+    """
+
     def __init__(self, data, knn, metric):
         self.data = data
         self.knn = knn
@@ -178,6 +327,24 @@ class StDataset(Dataset):
         return self.data.shape[0]
 
     def get_batch(self, index):
+        """
+        Get a batch of data according to given index
+        
+        Parameters
+        ------
+        index
+            a list of index for a batch of samples
+             
+        Returns
+        ------
+        data_batch
+            gene expression for a batch of data
+        knn_batch
+            K-NN sub-graph for a batch of data
+        metric_batch
+            spatial prior sub-graph for a batch of data
+        """
+
         data_batch = self.data[index]
         knn_batch = self.knn[index][:, index]
         metric_batch = self.metric[index][:, index]
@@ -201,6 +368,26 @@ class StDataset(Dataset):
 
 
 def Ripplewalk_sampler(graph, r=0.5, batchsize=6400, total_times=10):
+    """
+    Training stategy of subgraph segmentation based on random walk, enabling mini-batch training on large datasets
+    
+    Parameters
+    ------
+    graph
+        graph indicating connectivity between spots, usually K-NN graph constructed from spatial coordinates
+    r
+        expansion ratio for sampling subgraph
+    batchsize
+        number of samples for a mini-batch
+    total_times
+        decide the number of subgraph to sample, number of subgraph = total_times * dataset_size / batchsize
+        
+    Returns
+    ------
+    subgraph_set
+        a list containing index of sampled sub-graphs
+    """
+
     if not isinstance(graph, sp.coo_matrix):
         graph = sp.coo_matrix(graph)
     num_nodes = graph.shape[0]
@@ -262,6 +449,24 @@ def Ripplewalk_sampler(graph, r=0.5, batchsize=6400, total_times=10):
 
 
 def optim_parameters(net, included=None, excluded=None):
+    """
+    Parameters in neural network to be trained
+    
+    Parameters
+    ------
+    net
+        neural network model
+    included
+        parameters to be trained, higher priority to excluded
+    excluded
+        parameters fixed, lower priority to excluded
+    
+    Returns
+    ------
+    params
+        iterator of parameter set to be trained
+    """
+
     def belongs_to(cur_layer, layers):
         for layer in layers:
             if layer in cur_layer:
@@ -286,13 +491,47 @@ def optim_parameters(net, included=None, excluded=None):
 
 
 def spatial_prior_graph(feature_matrix, k_neighbors, v=1):
+    """
+    Construct spatial prior graph for metric learning
+    
+    Parameters
+    ------
+    feature_matrix
+        spatial corrdinate matrix
+    k_neighbors
+        number of neighbors to construct graph
+    v
+        scale factor in student's t kernel
+    
+    Returns
+    ------
+    spatial_graph
+        spatial graph of sparse matrix format
+    """
     dist = kneighbors_graph(feature_matrix, n_neighbors=k_neighbors, mode="distance")
     dist.data = (1 + 1e-6 + dist.data ** 2 / v) ** (-(1 + v) / 2)
     spatial_graph = sp.csr_matrix(dist / dist.sum(-1))
 
     return spatial_graph
 
+
 def load_noise(sdata, mask):
+    """
+    Add noise to gene expression matrix
+    
+    Parameters
+    ------
+    sdata
+        target dataset of anndata format
+    mask
+        matrix containing 0 or 1 to mask gene expression as noise
+    
+    Returns
+    ------
+    sdata
+        target dataset of anndata format with noise
+    """
+
     if sp.issparse(sdata.X):
         sdata.X = sdata.X.toarray()
     sdata.X = sdata.X * mask

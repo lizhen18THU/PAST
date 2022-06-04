@@ -4,6 +4,9 @@ import torch.nn.functional as F
 from torch.nn.parameter import Parameter
 
 class MaskedScaleDotProductModule(nn.Module):
+    """
+    Module to construct MaskedScaleDotProductAttention(self-attention)
+    """
 
     def __init__(self, scale_factor, gamma=1.0):
         super().__init__()
@@ -22,6 +25,9 @@ class MaskedScaleDotProductModule(nn.Module):
 
 
 class MaskedScaleDotProductAttention(nn.Module):
+    """
+    Self-attention
+    """
 
     def __init__(self, d_in, d_out, d_k, gamma=1.0, dropout=0.1):
         super().__init__()
@@ -50,6 +56,9 @@ class MaskedScaleDotProductAttention(nn.Module):
         return v, attn
 
 class BayesianLinear(nn.Module):
+    """
+    Bayesian neural network
+    """
 
     def __init__(self, in_features, out_features):
         super(BayesianLinear, self).__init__()

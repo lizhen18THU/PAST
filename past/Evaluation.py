@@ -11,7 +11,21 @@ from sklearn.metrics.cluster import normalized_mutual_info_score
 
 def svm_cross_validation(mtx, target, Kfold=5):
     """
-    Take low-dimensional embedding as input, annotation as output, SVM with rbf kernel as classifier,
+    K-fold cross validation of taking low-dimensional embedding as input, annotation as output and SVM with rbf kernel as classifier
+
+    Parameters
+    ------
+    mtx
+        latent feature matrix
+    target
+        annotation
+    Kfold
+        number of fold for cross validation
+
+    Returns
+    ------
+    cv_results
+        accuracy of cross validation
     """
     if isinstance(target, pd.Series):
         target = target.astype(str).values
@@ -25,6 +39,24 @@ def svm_cross_validation(mtx, target, Kfold=5):
     return cv_results["test_score"]
 
 def cluster_refine(pred, spatial_mtx, num_nbs=6):
+    """
+    Refine clustering result according spatial neighborhood
+
+    Parameters
+    ------
+    pred
+        original clustering labels
+    spatial_mtx
+        spatial cordinate matrix
+    num_nbs
+        number of neighbors to consider when refining clustering labels
+
+    Returns
+    ------
+    refined_label
+        refined labels
+    """
+
     assert num_nbs > 0, "The number of neighbors must be larger than zero"
     sample_id = [i for i in range(pred.shape[0])]
     refined_pred=[]
@@ -45,6 +77,27 @@ def cluster_refine(pred, spatial_mtx, num_nbs=6):
     return refined_pred
 
 def default_louvain(adata, refine=False, num_nbs=6, use_rep="embedding"):
+    """
+    Default louvain clustering algorithm applied in scanpy package with default resolution 1.0
+
+    Parameters
+    ------
+    adata
+        target dataset of anndata format with latent feature stored in adata.obsm[use_rep] or with result of pp.neighbors
+    refine
+        whether or not refine clustering results, if True, spatial coordinate should be stored in adata.obsm["spatial"]
+    num_nbs
+        number of neighbors to consider when refining clustering labels, valid only if refine is True
+    use_rep
+        key of adata.obsm implying latent features
+
+    Returns
+    ------
+    adata
+        target dataset of anndata format with default louvain clustering result stored in adata.obs["Dlouvain"] and
+        refined clustering result stored in adata.obs["Dlouvain_refined"] if refined is True
+    """
+
     if "neighbors" not in adata.uns.keys():
         sc.pp.neighbors(adata, use_rep=use_rep)
     sc.tl.louvain(adata)
@@ -53,7 +106,28 @@ def default_louvain(adata, refine=False, num_nbs=6, use_rep="embedding"):
         adata.obs["Dlouvain_refined"] = cluster_refine(adata.obs["Dlouvain"].values, adata.obsm["spatial"], num_nbs)
     return adata
 
-def default_leiden(adata, refine=True, num_nbs=6, use_rep="embedding"):
+def default_leiden(adata, refine=False, num_nbs=6, use_rep="embedding"):
+    """
+    Default leiden clustering algorithm applied in scanpy package with default resolution 1.0
+
+    Parameters
+    ------
+    adata
+        target dataset of anndata format with latent feature stored in adata.obsm[use_rep] or with result of pp.neighbors
+    refine
+        whether or not refine clustering results, if True, spatial coordinate should be stored in adata.obsm["spatial"]
+    num_nbs
+        number of neighbors to consider when refining clustering labels, valid only if refine is True
+    use_rep
+        key of adata.obsm implying latent features
+
+    Returns
+    ------
+    adata
+        target dataset of anndata format with default leiden clustering result stored in adata.obs["Dleiden"] and
+        refined clustering result stored in adata.obs["Dleiden_refined"] if refined is True
+    """
+
     if "neighbors" not in adata.uns.keys():
         sc.pp.neighbors(adata, use_rep=use_rep)
     sc.tl.leiden(adata)
@@ -62,7 +136,36 @@ def default_leiden(adata, refine=True, num_nbs=6, use_rep="embedding"):
         adata.obs["Dleiden_refined"] = cluster_refine(adata.obs["Dleiden"].values, adata.obsm["spatial"], num_nbs)
     return adata
 
-def run_louvain(adata, n_cluster, refine=True, num_nbs=6, use_rep="embedding", range_min=0, range_max=3, max_steps=30, tolerance=0):
+def run_louvain(adata, n_cluster, refine=False, num_nbs=6, use_rep="embedding", range_min=0, range_max=3, max_steps=30):
+    """
+    Search resolution so that louvain clustering algorithm obtain cluster numbers as close to given number as possible
+
+    Parameters
+    ------
+    adata
+        target dataset of anndata format with latent feature stored in adata.obsm[use_rep] or with result of pp.neighbors
+    n_cluster
+        cluster numbers
+    refine
+        whether or not refine clustering results, if True, spatial coordinate should be stored in adata.obsm["spatial"]
+    num_nbs
+        number of neighbors to consider when refining clustering labels, valid only if refine is True
+    use_rep
+        key of adata.obsm implying latent features
+    range_min
+        start resolution to search
+    range_max
+        end  resolution  to search
+    max_steps
+        max iterators to search resolution
+
+    Returns
+    ------
+    adata
+        target dataset of anndata format with searched louvain clustering result stored in adata.obs["Nlouvain"] and
+        refined clustering result stored in adata.obs["Nlouvain_refined"] if refined is True
+    """
+
     if "neighbors" not in adata.uns.keys():
         sc.pp.neighbors(adata, use_rep=use_rep)
     this_step = 0
@@ -73,9 +176,9 @@ def run_louvain(adata, n_cluster, refine=True, num_nbs=6, use_rep="embedding", r
         sc.tl.louvain(adata, resolution=this_resolution)
         this_clusters = adata.obs['louvain'].nunique()
 
-        if this_clusters > n_cluster+tolerance:
+        if this_clusters > n_cluster:
             this_max = this_resolution
-        elif this_clusters < n_cluster-tolerance:
+        elif this_clusters < n_cluster:
             this_min = this_resolution
         else:
             print("Succeed to find %d clusters at resolution %.3f"%(n_cluster, this_resolution))
@@ -92,8 +195,36 @@ def run_louvain(adata, n_cluster, refine=True, num_nbs=6, use_rep="embedding", r
     return adata
 
 
-def run_leiden(adata, n_cluster, refine=True, num_nbs=6, use_rep="STAGATE", range_min=0, range_max=3, max_steps=30,
-               tolerance=0):
+def run_leiden(adata, n_cluster, refine=False, num_nbs=6, use_rep="STAGATE", range_min=0, range_max=3, max_steps=30):
+    """
+    Search resolution so that leiden clustering algorithm obtain cluster numbers as close to given number as possible
+
+    Parameters
+    ------
+    adata
+        target dataset of anndata format with latent feature stored in adata.obsm[use_rep] or with result of pp.neighbors
+    n_cluster
+        cluster numbers
+    refine
+        whether or not refine clustering results, if True, spatial coordinate should be stored in adata.obsm["spatial"]
+    num_nbs
+        number of neighbors to consider when refining clustering labels, valid only if refine is True
+    use_rep
+        key of adata.obsm implying latent features
+    range_min
+        start resolution to search
+    range_max
+        end  resolution  to search
+    max_steps
+        max iterators to search resolution
+
+    Returns
+    ------
+    adata
+        target dataset of anndata format with searched leiden clustering result stored in adata.obs["Nleiden"] and
+        refined clustering result stored in adata.obs["Nleiden_refined"] if refined is True
+    """
+
     if "neighbors" not in adata.uns.keys():
         sc.pp.neighbors(adata, use_rep=use_rep)
     this_step = 0
@@ -104,9 +235,9 @@ def run_leiden(adata, n_cluster, refine=True, num_nbs=6, use_rep="STAGATE", rang
         sc.tl.leiden(adata, resolution=this_resolution)
         this_clusters = adata.obs['leiden'].nunique()
 
-        if this_clusters > n_cluster + tolerance:
+        if this_clusters > n_cluster:
             this_max = this_resolution
-        elif this_clusters < n_cluster - tolerance:
+        elif this_clusters < n_cluster:
             this_min = this_resolution
         else:
             print("Succeed to find %d clusters at resolution %.3f" % (n_cluster, this_resolution))
@@ -124,10 +255,32 @@ def run_leiden(adata, n_cluster, refine=True, num_nbs=6, use_rep="STAGATE", rang
     return adata
 
 
-def mclust_R(adata, num_cluster, refine=True, num_nbs=6, modelNames='EEE', used_obsm='embedding', random_seed=666):
-    """\
+def mclust_R(adata, num_cluster, refine=False, num_nbs=6, modelNames='EEE', used_obsm='embedding', random_seed=666):
+    """
     Clustering using the mclust algorithm.
-    The parameters are the same as those in the R package mclust.
+
+    Parameters
+    ------
+    adata
+        target dataset of anndata format with latent feature stored in adata.obsm[used_obsm]
+    num_cluster
+        cluster number
+    refine
+        whether or not refine clustering results, if True, spatial coordinate should be stored in adata.obsm["spatial"]
+    num_nbs
+        number of neighbors to consider when refining clustering labels, valid only if refine is True
+    modelNames
+        parameter in mclust R package, implying different data distribution
+    used_obsm
+        key of adata.obsm implying latent features
+    random_seed
+        seed for reproduction
+
+    Returns
+    ------
+    adata
+        target dataset of anndata format with mclust clustering result stored in adata.obs["mclust"] and
+        refined clustering result stored in adata.obs["mclust_refined"] if refined is True
     """
 
     np.random.seed(random_seed)
@@ -154,6 +307,30 @@ def mclust_R(adata, num_cluster, refine=True, num_nbs=6, modelNames='EEE', used_
     return adata
 
 def cluster_metrics(adata, target, pred):
+    """
+    clustering metrics including ARI, AMI, HOMO and NMI
+
+    Parameters
+    ------
+    adata
+        target dataset of anndata format with target key and pred key
+    target
+        key stored in adata.obs implying ground truth
+    pred
+        key stored in adata.obs implying clustering result
+
+    Returns
+    ------
+    ari
+        adjusted rand index
+    ami
+        adjusted mutual information score
+    homo
+        homogeneity score
+    nmi
+        normalized mutual information score
+    """
+
     ari = adjusted_rand_score(adata.obs[target], adata.obs[pred])
     ami = adjusted_mutual_info_score(adata.obs[target], adata.obs[pred])
     homo = homogeneity_score(adata.obs[target], adata.obs[pred])
