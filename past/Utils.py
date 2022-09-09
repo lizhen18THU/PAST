@@ -4,6 +4,7 @@ import pandas as pd
 import scipy.sparse as sp
 from numba import jit
 import scanpy as sc
+from sklearn.svm import SVC
 from sklearn.neighbors import kneighbors_graph
 from torch.utils.data import Dataset
 import torch
@@ -106,7 +107,12 @@ def integration(adata_ref, adata):
     express_df = pd.DataFrame(adata_ref.X.toarray(), index=adata_ref.obs_names, columns=adata_ref.var_names)
     target_features = adata.var_names
     express_df = gene_union(express_df, target_features)
-    adata_ref = sc.AnnData(sp.csr_matrix(express_df.values), obs=adata_ref.obs, var=pd.DataFrame(target_features))
+
+    adata_ref_obsm = adata_ref.obsm
+    adata_ref_uns = adata_ref.uns
+    adata_ref = sc.AnnData(sp.csr_matrix(express_df.values), obs=adata_ref.obs.copy(), var = pd.DataFrame(index=target_features))
+    adata_ref.obsm = adata_ref_obsm
+    adata_ref.uns = adata_ref_uns
 
     return adata_ref
 
@@ -155,7 +161,7 @@ def geary_genes(adata, n_tops=3000, k=30):
     return adata[:, genes_selected]
 
 
-def preprocess(adata, min_cells=3, target_sum=None, is_filter_MT=True, n_tops=None, gene_method="hvg", normalize=True):
+def preprocess(adata, min_cells=3, target_sum=None, is_filter_MT=False, n_tops=None, gene_method="hvg", normalize=True):
     """
     Data preprocess for downstream analysis
 
@@ -189,8 +195,8 @@ def preprocess(adata, min_cells=3, target_sum=None, is_filter_MT=True, n_tops=No
         sc.pp.filter_genes(adata, min_cells=min_cells)
     if is_filter_MT:
         # filter MT-gene
-        adata.var['mt'] = adata.var_names.str.startswith('MT-')  # annotate the group of mitochondrial genes as 'mt'
-        adata = adata[:, adata.var_names.str.startswith('MT-') == False]
+        adata.var['mt'] = adata.var_names.str.startswith('MT-') | adata.var_names.str.startswith('mt-') | adata.var_names.str.startswith('mT-') | adata.var_names.str.startswith('Mt-')
+        adata = adata[:, adata.var['mt'] == False]
     if n_tops is not None and n_tops < adata.X.shape[1] and gene_method.lower() == "hvg":
         sc.pp.highly_variable_genes(adata, flavor="seurat_v3", n_top_genes=n_tops, subset=True)
     if normalize:
@@ -538,3 +544,34 @@ def load_noise(sdata, mask):
     if sp.issparse(sdata.X):
         sdata.X = sp.csr_matrix
     return sdata.copy()
+
+def svm_annotation(ref_mtx, ref_anno, target_mtx):
+    """
+    Use SVM with radial basis function kernel as classifier to train on the reference dataset and annotate the target dataset.
+
+    Parameters
+    ------
+    ref_mtx
+        feature matrix of reference dataset, usually referring to latent embedding of PAST
+    ref_anno
+        the annotation of reference dataset
+    target_mtx
+        feature matrix of target dataset in the same latent space with that of reference dataset
+
+    Returns
+    ------
+        the annotation of target dataset
+    """
+
+    if isinstance(ref_anno, pd.Series):
+        ref_anno = ref_anno.astype(str).values
+    ref_anno_unique = np.unique(ref_anno).reshape(1, -1)
+    ref_onehot = (ref_anno.reshape(-1, 1)==ref_anno_unique).astype(int)
+    ref_out = ref_onehot.argmax(-1)
+    ref_anno_unique = ref_anno_unique.reshape(-1)
+    
+    svc = SVC()
+    svc.fit(ref_mtx, ref_out)
+    target_out = svc.predict(target_mtx)
+    
+    return ref_anno_unique[target_out]

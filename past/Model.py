@@ -190,14 +190,14 @@ class PAST(nn.Module):
                 total_loss += loss.item()
                 count += 1
 
-            if abs(total_loss / count - last_loss) < 1e-2 or total_loss / count - last_loss > 1e-2 or converge:
+            if converge or abs(total_loss / count - last_loss) < 1e-2 or total_loss / count - last_loss > 1e-2:
                 print("Model Converge")
                 break
 
             last_loss = total_loss / count
 
             e = time.time()
-            print("Epoch:%d Time:%.2fs Loss: %f" % (epoch + 1, e - s, total_loss / count))
+            print("Epoch:%d Time:%.2fs Loss: %f" % ((epoch + 1)*10, e - s, total_loss / count))
             s = time.time()
         self.freeze()
 
