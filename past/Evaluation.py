@@ -11,7 +11,7 @@ from sklearn.metrics.cluster import normalized_mutual_info_score
 
 def svm_cross_validation(mtx, target, Kfold=5):
     """
-    K-fold cross validation of taking low-dimensional embedding as input, annotation as output and SVM with rbf kernel as classifier
+    K-fold cross validation, taking low-dimensional embedding as input, annotation as output and SVM with rbf kernel as classifier
 
     Parameters
     ------
@@ -24,19 +24,33 @@ def svm_cross_validation(mtx, target, Kfold=5):
 
     Returns
     ------
-    cv_results
-        accuracy of cross validation
+    Acc
+        Accuracy of cross validation
+    K
+        Kappa of cross validation
+    mF1
+        mF1 of cross validation
+    wF1
+        wF1 of cross validation
     """
     if isinstance(target, pd.Series):
         target = target.astype(str).values
 
     target_unique = np.unique(target).reshape(1, -1)
-    target_onehot = (target.reshape(-1, 1) == target_unique).astype(int)
+    target_onehot = (target.reshape(-1, 1)==target_unique).astype(int)
     target = target_onehot.argmax(-1)
     svc = SVC()
-    cv_results = cross_validate(svc, mtx, target, scoring="accuracy", cv=Kfold, n_jobs=Kfold)
-
-    return cv_results["test_score"]
+    cv_results = cross_validate(svc, mtx, target,
+                                scoring=("accuracy", "f1_macro", "f1_weighted"),
+                                cv=Kfold, n_jobs=Kfold)
+    svc = SVC()
+    from sklearn.metrics import cohen_kappa_score, make_scorer
+    kappa_score = make_scorer(cohen_kappa_score)
+    kappa = cross_validate(svc, mtx, target,
+                                scoring=kappa_score,
+                                cv=Kfold, n_jobs=Kfold)["test_score"]
+    
+    return cv_results["test_accuracy"], kappa, cv_results["test_f1_macro"], cv_results["test_f1_weighted"]
 
 def cluster_refine(pred, spatial_mtx, num_nbs=6):
     """
@@ -325,16 +339,21 @@ def cluster_metrics(adata, target, pred):
         adjusted rand index
     ami
         adjusted mutual information score
-    homo
-        homogeneity score
     nmi
         normalized mutual information score
+    fmi
+        fowlkes–mallows index
+    comp
+        completeness score
+    homo
+        homogeneity score
     """
 
-    ari = adjusted_rand_score(adata.obs[target], adata.obs[pred])
-    ami = adjusted_mutual_info_score(adata.obs[target], adata.obs[pred])
-    homo = homogeneity_score(adata.obs[target], adata.obs[pred])
-    nmi = normalized_mutual_info_score(adata.obs[target], adata.obs[pred])
-    print('ARI: %.3f, AMI: %.3f, Homo: %.3f, NMI: %.3f' % (ari, ami, homo, nmi))
+    ari = adjusted_rand_score(target, pred)
+    nmi = normalized_mutual_info_score(target, pred)
+    ami = adjusted_mutual_info_score(target, pred)
+    comp = completeness_score(target, pred)
+    fmi = fowlkes_mallows_score(target, pred)
+    homo = homogeneity_score(target, pred)
 
-    return ari, ami, homo, nmi
+    return ari, nmi, ami, comp, fmi, homo

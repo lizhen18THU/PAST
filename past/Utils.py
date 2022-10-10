@@ -110,7 +110,8 @@ def integration(adata_ref, adata):
 
     adata_ref_obsm = adata_ref.obsm
     adata_ref_uns = adata_ref.uns
-    adata_ref = sc.AnnData(sp.csr_matrix(express_df.values), obs=adata_ref.obs.copy(), var = pd.DataFrame(index=target_features))
+    adata_ref = sc.AnnData(sp.csr_matrix(express_df.values), obs=adata_ref.obs.copy(),
+                           var = pd.DataFrame(index=target_features))
     adata_ref.obsm = adata_ref_obsm
     adata_ref.uns = adata_ref_uns
 
@@ -400,7 +401,7 @@ def Ripplewalk_sampler(graph, r=0.5, batchsize=6400, total_times=10):
     number_subgraph = (num_nodes * total_times) // batchsize + 1
 
     if batchsize >= num_nodes:
-        print("This dataset is small enough to train without Ripplewalk_sampler")
+        print("This dataset is smaller than batchsize so that ripple walk sampler is not used!")
         subgraph_set = []
         for i in range(total_times):
             index_list = [j for j in range(num_nodes)]
@@ -451,6 +452,94 @@ def Ripplewalk_sampler(graph, r=0.5, batchsize=6400, total_times=10):
                     index_subgraph = list(set(index_subgraph))
                     break
         subgraph_set.append(index_subgraph)
+    return subgraph_set
+
+
+def Ripplewalk_prediction(graph, r=0.5, batchsize=6400):
+    """
+    Prediction stategy of subgraph segmentation based on random walk, enabling mini-batch prediction on large datasets
+    
+    Parameters
+    ------
+    graph
+        graph indicating connectivity between spots, usually K-NN graph constructed from spatial coordinates
+    r
+        expansion ratio for sampling subgraph
+    batchsize
+        number of samples for a mini-batch
+        
+    Returns
+    ------
+    subgraph_set
+        a list containing index of sampled sub-graphs
+    """
+        
+    if not isinstance(graph, sp.coo_matrix):
+        graph = sp.coo_matrix(graph)
+    num_nodes = graph.shape[0]
+    
+    if batchsize >= num_nodes:
+        subgraph_set = []
+        index_list = np.array([j for j in range(num_nodes)])
+        subgraph_set.append(index_list)
+        return subgraph_set
+    
+    # transform adj to index
+    final = []
+    for i in range(num_nodes):
+        final.append(graph.col[graph.row==i].tolist())
+    graph = final
+    
+    all_nodes = [j for j in range(num_nodes)]
+    sampled_nodes = []
+    
+    # Ripplewalk sampling
+    subgraph_set = []
+    
+    while len(all_nodes)>len(sampled_nodes):
+        # select initial node from non-sampled nodes
+        nonsampled_nodes = np.setdiff1d(all_nodes, sampled_nodes)
+        random.shuffle(nonsampled_nodes)
+        cur_node = nonsampled_nodes[0]
+        index_subgraph = [cur_node]
+        
+        #the neighbor node set of the initial nodes
+        neighbors = graph[index_subgraph[0]]
+        sampled_nodes.append(cur_node)
+        len_subgraph = 1
+        
+        while(1):
+            len_neighbors = len(neighbors)
+            if(len_neighbors == 0): # getting stuck in the inconnected graph, select restart node
+                nonsampled_nodes = np.setdiff1d(all_nodes, sampled_nodes)
+                random.shuffle(nonsampled_nodes)
+                restart_node = nonsampled_nodes[0]
+                index_subgraph.append(restart_node)
+                
+                neighbors = neighbors + graph[restart_node]
+                neighbors = list(set(neighbors) - set(index_subgraph))
+                sampled_nodes.append(restart_node)
+                len_subgraph = len(index_subgraph)
+            else: # select part (half) of the neighbor nodes and insert them into the current subgraph
+                if ((batchsize - len_subgraph) > (len_neighbors*r)): # judge if we need to select that much neighbors
+                    neig_random = random.sample(neighbors, max(1, int(r*len_neighbors)))
+                    neighbors = list(set(neighbors) - set(neig_random))
+
+                    index_subgraph = index_subgraph + neig_random
+                    index_subgraph = list(set(index_subgraph))
+                    
+                    for i in neig_random:
+                        neighbors = neighbors + graph[i]
+                    neighbors = list(set(neighbors) - set(index_subgraph))
+                    sampled_nodes = np.union1d(sampled_nodes, neig_random).tolist()
+                    len_subgraph = len(index_subgraph)
+                else:
+                    neig_random = random.sample(neighbors, (batchsize - len_subgraph))
+                    index_subgraph = index_subgraph + neig_random
+                    index_subgraph = list(set(index_subgraph))
+                    sampled_nodes = np.union1d(sampled_nodes, neig_random).tolist()
+                    break
+        subgraph_set.append(np.array(index_subgraph))
     return subgraph_set
 
 
@@ -514,10 +603,11 @@ def spatial_prior_graph(feature_matrix, k_neighbors, v=1):
     spatial_graph
         spatial graph of sparse matrix format
     """
-    dist = kneighbors_graph(feature_matrix, n_neighbors=k_neighbors, mode="distance")
-    dist.data = (1 + 1e-6 + dist.data ** 2 / v) ** (-(1 + v) / 2)
-    spatial_graph = sp.csr_matrix(dist / dist.sum(-1))
-
+    dist = kneighbors_graph(feature_matrix, n_neighbors=k_neighbors, mode="distance").tocoo()
+    dist.data = (1 + 1e-6 + dist.data**2/v) ** (-(1+v) / 2)
+    dist.data = dist.data/(np.array(dist.sum(axis=1)).reshape(-1, 1).repeat(k_neighbors, axis=1).reshape(-1))
+    spatial_graph = dist.tocsr()
+    
     return spatial_graph
 
 

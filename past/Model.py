@@ -81,7 +81,7 @@ class PAST(nn.Module):
         return eps.mul(std).add_(mu)
 
     def model_train(self, sdata, rdata=None, anno_key="anno", epochs=50, lr=1e-3, batchsize=6400, weight_decay=1e-4,
-                    r=0.5, alpha=1.0, beta=1.0, gamma=1.0, kappa=1.0, device=torch.device("cuda:0")):
+                    r=0.5, beta1=1.0, beta2=1.0, beta3=1.0, beta4=1.0, device=torch.device("cuda")):
         """
         Training PAST model
 
@@ -103,13 +103,13 @@ class PAST(nn.Module):
             weight decay for regularization
         r
             expansion ratio for sub-graph sampling
-        alpha
-            latent vae loss coefficient
-        beta
+        beta1
             adapted mean square loss coefficient
-        gamma
+        beta2
+            latent vae KLD loss coefficient
+        beta3
             metric learning loss coefficient
-        kappa
+        beta4
             bayesian prior KLD loss coefficient
         device
             device used for model training
@@ -137,9 +137,8 @@ class PAST(nn.Module):
             prior_weight = torch.FloatTensor(sdata.varm["PCs"].T.copy())
             self.prior_initialize(prior_weight)
         else:
-            rdata = integration(rdata, sdata)
-            rdata = preprocess(rdata, min_cells=None, target_sum=None, is_filter_MT=False, n_tops=None)
-            rdata = get_bulk(rdata, key=anno_key, min_samples=self.d_prior + 1)
+            if not isinstance(rdata, sc.AnnData):
+                rdata = sc.AnnData(rdata)
             sc.tl.pca(rdata, n_comps=self.d_prior)
             prior_weight = torch.FloatTensor(rdata.varm["PCs"].T.copy())
             self.prior_initialize(prior_weight)
@@ -168,7 +167,7 @@ class PAST(nn.Module):
                 vae = loss_kld(mu, logvar)
                 metric = loss_metric(mu, neighbor_subgraph)
                 bnn = self.bnn_loss()
-                loss = alpha * vae + beta * amse + gamma * metric + kappa * bnn
+                loss = beta1 * amse + beta2 * vae + beta3 * metric + beta4 * bnn
 
                 optimizer.zero_grad()
                 loss.backward()
@@ -201,9 +200,9 @@ class PAST(nn.Module):
             s = time.time()
         self.freeze()
 
-    def output(self, sdata, key_added="embedding", device=torch.device("cpu")):
+    def output(self, sdata, key_added="embedding", device=torch.device("cpu"), r=0.5, batchsize=25600):
         """
-        Model predict
+        Model prediction
 
         Parameters
         ------
@@ -213,6 +212,10 @@ class PAST(nn.Module):
             key added to sdata.obsm to store latent feature
         device
             device used to predict
+        batchsize
+            number of samples of a mini-batch
+        r
+            expansion ratio for sub-graph sampling
 
         Returns
         ------
@@ -221,19 +224,44 @@ class PAST(nn.Module):
         """
 
         knn_graph = kneighbors_graph(sdata.obsm["spatial"], n_neighbors=self.k_neighbors, include_self=False)
-        knn_graph = torch.FloatTensor(knn_graph.toarray() + np.eye(knn_graph.shape[0]))
-
+        knn_graph = knn_graph + sp.eye(knn_graph.shape[0])
+        subgraph_index = Ripplewalk_prediction(knn_graph, r=r, batchsize=batchsize)
+        
         self.to(device)
         self.eval()
-        exp_mtx = torch.FloatTensor(sdata.X.toarray()).to(device)
-        knn_graph = knn_graph.to(device)
-        with torch.no_grad():
-            mu, logvar, enc_attn = self.encoder(exp_mtx, knn_graph)
-        enc_attn["attn1"] = sp.csr_matrix(enc_attn["attn1"].cpu().numpy() * knn_graph.cpu().numpy())
-        enc_attn["attn2"] = sp.csr_matrix(enc_attn["attn2"].cpu().numpy() * knn_graph.cpu().numpy())
-
-        sdata.obsm[key_added] = mu.cpu().numpy()
-
+        if not sp.issparse(sdata.X):
+            exp_mtx = sp.csr_matrix(sdata.X.copy())
+        else:
+            exp_mtx = sdata.X.copy().tocsr()
+        
+        results, index = None, None
+        for i in range(len(subgraph_index)):
+            cur_index = subgraph_index[i]
+            exp_batch = torch.FloatTensor(exp_mtx[cur_index].toarray()).to(device)
+            knn_batch = torch.FloatTensor(knn_graph[cur_index][:, cur_index].toarray()).to(device)
+            with torch.no_grad():
+                mu, logvar, enc_attn = self.encoder(exp_batch, knn_batch)
+            if results is None:
+                results = mu.cpu().numpy()
+                index = cur_index
+            else:
+                results = np.concatenate([results, mu.cpu().numpy()], axis=0)
+                index = np.concatenate([index, cur_index], axis=0)
+        results = results[np.argsort(index), :]
+        index = index[np.argsort(index)]
+        
+        if index.shape[0]>sdata.shape[0]:
+            results_ensemble = []
+            for i in range(sdata.shape[0]):
+                cur_embed = results[index==i, :].mean(axis=0)
+                results_ensemble.append(cur_embed)
+        else:
+            results_ensemble = results
+#         enc_attn["attn1"] = sp.csr_matrix(enc_attn["attn1"].cpu().numpy()*knn_graph.cpu().numpy())
+#         enc_attn["attn2"] = sp.csr_matrix(enc_attn["attn2"].cpu().numpy()*knn_graph.cpu().numpy())
+        
+        sdata.obsm[key_added] = np.array(results_ensemble)
+        
         return sdata
 
     def forward(self, x, knn_graph):
