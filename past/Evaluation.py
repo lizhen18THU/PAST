@@ -5,9 +5,11 @@ from sklearn.neighbors import kneighbors_graph
 from sklearn.model_selection import cross_validate
 from sklearn.svm import SVC
 from sklearn.metrics.cluster import adjusted_rand_score
+from sklearn.metrics.cluster import normalized_mutual_info_score
+from sklearn.metrics.cluster import fowlkes_mallows_score
 from sklearn.metrics.cluster import adjusted_mutual_info_score
 from sklearn.metrics.cluster import homogeneity_score
-from sklearn.metrics.cluster import normalized_mutual_info_score
+from sklearn.metrics.cluster import completeness_score
 
 def svm_cross_validation(mtx, target, Kfold=5):
     """
@@ -348,7 +350,9 @@ def cluster_metrics(adata, target, pred):
     homo
         homogeneity score
     """
-
+    vec_target = adata.obs[target].astype(str)
+    vec_pred = adata.obs[target].astype(str)
+    
     ari = adjusted_rand_score(target, pred)
     nmi = normalized_mutual_info_score(target, pred)
     ami = adjusted_mutual_info_score(target, pred)
