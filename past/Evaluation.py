@@ -351,7 +351,7 @@ def cluster_metrics(adata, target, pred):
         homogeneity score
     """
     vec_target = adata.obs[target].astype(str)
-    vec_pred = adata.obs[target].astype(str)
+    vec_pred = adata.obs[pred].astype(str)
     
     ari = adjusted_rand_score(vec_target, vec_pred)
     nmi = normalized_mutual_info_score(vec_target, vec_pred)

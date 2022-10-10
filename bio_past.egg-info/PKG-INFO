@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: bio-past
-Version: 1.0.3
+Version: 1.1.0
 Summary: PAST: latent feature extraction with a Prior-based self-Attention framework for Spatial Transcriptomics
 Home-page: https://github.com/lizhen18THU/PAST
 Author: Zhen Li
