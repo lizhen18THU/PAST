@@ -80,7 +80,7 @@ class PAST(nn.Module):
         eps = torch.FloatTensor(std.size()).normal_().to(mu.device)
         return eps.mul(std).add_(mu)
 
-    def model_train(self, sdata, rdata=None, anno_key="anno", epochs=50, lr=1e-3, batchsize=6400, weight_decay=1e-4,
+    def model_train(self, sdata, rdata=None, epochs=50, lr=1e-3, batchsize=6400, weight_decay=1e-4,
                     r=0.5, beta1=1.0, beta2=1.0, beta3=1.0, beta4=1.0, device=torch.device("cuda")):
         """
         Training PAST model
@@ -90,9 +90,7 @@ class PAST(nn.Module):
         sdata
             input target dataset of anndata format(preprocessed)
         rdata
-            externel reference dataset of anndata format(not preprocessed), if None, use self-prior strategy by default
-        anno_key
-            key stored in rdata.obs implying annotation
+            preprocessed externel reference dataset of anndata format, if None, use self-prior strategy by default
         epochs
             number of epochs to train
         lr
