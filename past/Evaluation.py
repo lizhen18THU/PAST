@@ -353,11 +353,11 @@ def cluster_metrics(adata, target, pred):
     vec_target = adata.obs[target].astype(str)
     vec_pred = adata.obs[target].astype(str)
     
-    ari = adjusted_rand_score(target, pred)
-    nmi = normalized_mutual_info_score(target, pred)
-    ami = adjusted_mutual_info_score(target, pred)
-    comp = completeness_score(target, pred)
-    fmi = fowlkes_mallows_score(target, pred)
-    homo = homogeneity_score(target, pred)
+    ari = adjusted_rand_score(vec_target, vec_pred)
+    nmi = normalized_mutual_info_score(vec_target, vec_pred)
+    ami = adjusted_mutual_info_score(vec_target, vec_pred)
+    comp = completeness_score(vec_target, vec_pred)
+    fmi = fowlkes_mallows_score(vec_target, vec_pred)
+    homo = homogeneity_score(vec_target, vec_pred)
 
-    return ari, nmi, ami, comp, fmi, homo
+    return ari, ami, nmi, fmi, comp, homo
