@@ -8,10 +8,11 @@ Documentation Status
 </div>
 
 ## Overview
-<div align=center>
-<img src = "docs/source/PAST_Overview.png" width = 65% height = 65%>
-</div>
 PAST software is build on a variational graph convolutional auto-encoder designed for spatial transcriptomics which integrates prior information with Bayesian neural network, captures spatial information with self-attention mechanism and enables scalable application with ripple walk sampler strategy. PAST could effectively characterize spatial domains and facilitate various downstream analysis through integrating spatial information and reference from various sources. Besides, PAST also enable time and memory-efficient application on large datasets while preserving global spatial patterns for better performance. Importantly, PAST could also facilitate accurate annotation of spatial domains and thus provide biological insights.
+
+<div align=center>
+<img src = "docs/source/PAST_Overview.png" width = 90% height = 90%>
+</div>
 
 ## Getting Started
 ### Installation
@@ -27,18 +28,18 @@ cd PAST
 python setup.py install
 ```
 
-### Dependencies
-numba
-numpy
-pandas
-scipy
-scikit-learn
-scanpy
-torch
+### Dependency
+numba   
+numpy   
+pandas   
+scipy   
+scikit-learn   
+scanpy   
+torch   
 
 These dependencies will be automatically installed along with PAST. To implement the mclust algorithm with python, the rpy2 package and the mclust package is needed. See https://pypi.org/project/rpy2/ and https://cran.r-project.org/web/packages/mclust/index.html for detail.
 
-### Tutorial and Documentation
-Detailed documentation and tutorial of PAST was provided here.
+### Tutorial
+Detailed tutorial of PAST was provided here.
 
 ## Citation
