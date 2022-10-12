@@ -4,10 +4,10 @@ from setuptools import setup, find_packages
 
 setup(
     name = "bio-past",
-    version = "1.5.0",
+    version = "1.6.0",
     keywords = ("pip", "past"),
     description = "PAST: latent feature extraction with a Prior-based self-Attention framework for Spatial Transcriptomics",
-    long_description = "PAST: latent feature extraction with a Prior-based self-Attention framework for Spatial Transcriptomics. Recent development of spatial transcriptomics (ST), which can not only obtain comprehensive gene expression profiles but also preserve spatial information, provides a new dimension to genomics research. As a prerequisite and basis for various downstream missions, latent feature extraction is of great significance for the analysis of spatial transcriptomics. However, few methods consider facilitating data analysis via integrating rich prior information from existing data, and the modality fusion of spatial information and gene expression also remains challenging. Here we propose PAST, a representation learning framework for spatial transcriptomics which takes advantage of prior information with Bayesian neural network and integrates spatial information and gene profile with self-attention mechanism",
+    long_description = "PAST software is build on a variational graph convolutional auto-encoder designed for spatial transcriptomics which integrates prior information with Bayesian neural network, captures spatial information with self-attention mechanism and enables scalable application with ripple walk sampler strategy. PAST could effectively characterize spatial domains and facilitate various downstream analysis through integrating spatial information and reference from various sources. Besides, PAST also enable time and memory-efficient application on large datasets while preserving global spatial patterns for better performance. Importantly, PAST could also facilitate accurate annotation of spatial domains and thus provide biological insights.",
     license = "MIT License",
     url = "https://github.com/lizhen18THU/PAST",
     author = "Zhen Li",
@@ -31,6 +31,5 @@ setup(
         'scikit-learn>=1.0.2',
         'scanpy>=1.9.1',
         'torch>=1.9.1',
-        'rpy2>=3.4.5',
     ]
 )
