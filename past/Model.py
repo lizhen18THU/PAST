@@ -172,33 +172,33 @@ class PAST(nn.Module):
                 optimizer.step()
 
                 if avoid_overtrain:
-                    if loss.item() - loss_recorded > 1e-5:
+                    if abs(loss.item()-loss_recorded) < 1e-3:
                         overtrain_count += 1
                     else:
                         overtrain_count = 0
-
-                    if overtrain_count > 5:
+                    
+                    if overtrain_count >= 3:
                         print("Early Stop")
                         converge = True
                         break
-
+                        
                     loss_recorded = loss.item()
-
+                
                 total_loss += loss.item()
                 count += 1
-
-            if converge or abs(total_loss / count - last_loss) < 1e-2 or total_loss / count - last_loss > 1e-2:
+                
+            if converge or abs(total_loss/count-last_loss)<1e-2 or total_loss/count-last_loss>1e-2:
                 print("Model Converge")
                 break
-
+                
             last_loss = total_loss / count
 
             e = time.time()
-            print("Epoch:%d Time:%.2fs Loss: %f" % ((epoch + 1)*10, e - s, total_loss / count))
+            print("Epoch:%d Time:%.2fs Loss: %f"%((epoch+1)*10, e-s, total_loss/count))
             s = time.time()
         self.freeze()
 
-    def output(self, sdata, key_added="embedding", device=torch.device("cpu"), r=0.5, batchsize=25600):
+    def output(self, sdata, key_added="embedding", device=torch.device("cpu"), r=0.5, batchsize=6400):
         """
         Model prediction
 
