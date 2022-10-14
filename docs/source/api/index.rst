@@ -5,7 +5,7 @@
 API
 ====
 
-Import PAST::
+Import PAST
     import past
 
 
