@@ -1,0 +1,9 @@
+numba
+numpy
+pandas
+scipy
+scikit-learn
+scanpy
+torch
+sphinx_autodoc_typehints
+nbsphinx

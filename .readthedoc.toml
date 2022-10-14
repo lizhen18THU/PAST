@@ -1,8 +1,6 @@
-[build-system]
-requires = ["flit_core >=3.2,<4"]
-build-backend = "flit_core.buildapi"
+version: 2
 
-[project]
-name = "test2018011485"
-authors = [{name = "lizhen", email = "lizhen18THU@163.com"}]
-dynamic = ["version", "description"]
+build:
+os: "ubuntu-18.04"
+  tools:
+    python: "3.6"

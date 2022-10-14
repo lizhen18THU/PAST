@@ -1,13 +1,13 @@
 [![PyPI](https://img.shields.io/pypi/v/bio-past.svg)](https://pypi.org/project/bio-past)
 [![Downloads](https://pepy.tech/badge/bio-past)](https://pepy.tech/project/bio-past)
-Documentation Status
+[![Documentation Status](https://readthedocs.org/projects/past/badge/?version=latest)](https://past.readthedocs.io/en/latest/?badge=latest)
 # PAST: a Prior-based self-Attention method for Spatial Transcriptomics
 
 <div align=center>
 <img src = "docs/source/PAST_LOGO.png" width = 65% height = 65%>
 </div>
 
-### Find more details and tutorials on the Documentation of PAST.
+### Find more details and tutorials on [the Documentation of PAST.](https://past.readthedocs.io/en/latest/?badge=latest)
 
 ## Overview
 PAST software is build on a variational graph convolutional auto-encoder designed for spatial transcriptomics which integrates prior information with Bayesian neural network, captures spatial information with self-attention mechanism and enables scalable application with ripple walk sampler strategy. PAST could effectively characterize spatial domains and facilitate various downstream analysis through integrating spatial information and reference from various sources. Besides, PAST also enable time and memory-efficient application on large datasets while preserving global spatial patterns for better performance. Importantly, PAST could also facilitate accurate annotation of spatial domains and thus provide biological insights.
@@ -39,6 +39,6 @@ scikit-learn
 scanpy   
 torch   
 
-These dependencies will be automatically installed along with PAST. To implement the mclust algorithm with python, the rpy2 package and the mclust package is needed. See https://pypi.org/project/rpy2/ and https://cran.r-project.org/web/packages/mclust/index.html for detail.
+These dependencies will be automatically installed along with PAST. To implement the mclust algorithm with python, the rpy2 package and the mclust package is needed. See [rpy2](https://pypi.org/project/rpy2) and [mclust](https://cran.r-project.org/web/packages/mclust/index.html) for detail.
 
 ## Citation

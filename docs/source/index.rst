@@ -1,22 +1,47 @@
-Welcome to Lumache's documentation!
-===================================
 
-**Lumache** (/lu'make/) is a Python library for cooks and food lovers
-that creates recipes mixing random ingredients.
-It pulls data from the `Open Food Facts database <https://world.openfoodfacts.org/>`_
-and offers a *simple* and *intuitive* API.
+   
+ |PyPI| |PyPIDownloads| |Docs|
 
-Check out the :doc:`usage` section for further information, including
-how to :ref:`installation` the project.
 
-.. note::
-
-   This project is under active development.
-
-Contents
---------
+.. |PyPI| image:: https://img.shields.io/pypi/v/bio-past.svg
+   :target: https://pypi.org/project/bio-past
+.. |PyPIDownloads| image:: https://pepy.tech/badge/bio-past
+   :target: https://pepy.tech/project/bio-past
+.. |Docs| image:: https://readthedocs.org/projects/past/badge/?version=latest
+   :target: https://past.readthedocs.io/en/latest/?badge=latest
+   
+PAST: a Prior-based self-Attention method for Spatial Transcriptomics
+=====================
 
 .. toctree::
+   :maxdepth: 2
+   :hidden:
 
-   usage
-   api
+   installation
+   10xVisium_BreastCancer_Tutorial
+   osmFISH_MSC_Tutorial
+   STARmap_MPVC_Tutorial
+   Stereo-seq_MOBS1_Tutorial
+   10xVisium_BreastCancer_Tutorial
+   api/index
+   release/index
+
+
+News
+----
+
+.. include:: news.rst
+   :start-line: 2
+
+
+Overview
+----
+
+.. include:: overview.rst
+   :start-line: 2
+
+
+Citation
+----
+.. citation:: citation.rst
+   :start-line: 2
