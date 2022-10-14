@@ -18,8 +18,8 @@ PAST: a Prior-based self-Attention method for Spatial Transcriptomics
    :hidden:
 
    installation
-   10xVisium_BreastCancer_Tutorial
    osmFISH_MSC_Tutorial
+   10xVisium_DLPFC151507_Tutorial
    STARmap_MPVC_Tutorial
    Stereo-seq_MOBS1_Tutorial
    10xVisium_BreastCancer_Tutorial
