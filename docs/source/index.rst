@@ -8,7 +8,7 @@
 .. |PyPIDownloads| image:: https://pepy.tech/badge/bio-past
    :target: https://pepy.tech/project/bio-past
 .. |Docs| image:: https://readthedocs.org/projects/past/badge/?version=latest
-   :target: https://past.readthedocs.io/en/latest/?badge=latest
+   :target: https://past.readthedocs.io/en/latest/
    
 PAST: a Prior-based self-Attention method for Spatial Transcriptomics
 =====================
