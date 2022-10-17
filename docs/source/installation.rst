@@ -21,17 +21,11 @@ Dependency
 ----
 
 numba
-
 numpy
-
 pandas
-
 scipy
-
 scikit-learn
-
 scanpy
-
 torch
 
 
