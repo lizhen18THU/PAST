@@ -111,10 +111,6 @@ class PAST(nn.Module):
             bayesian prior KLD loss coefficient
         device
             device used for model training
-
-        Returns
-        ------
-        None
         """
 
         avoid_overtrain = True if sdata.shape[0] > 15000 else False
@@ -200,7 +196,7 @@ class PAST(nn.Module):
 
     def output(self, sdata, key_added="embedding", device=torch.device("cpu"), r=0.5, batchsize=6400):
         """
-        Model prediction
+        Predict latent embeddings and store the embeddings to sdata 
 
         Parameters
         ------
@@ -217,7 +213,7 @@ class PAST(nn.Module):
 
         Returns
         ------
-        sdata
+        scanpy.anndata
             input target dataset of anndata format with latent feature stored in sdata.obsm[key_added]
         """
 
@@ -263,6 +259,29 @@ class PAST(nn.Module):
         return sdata
 
     def forward(self, x, knn_graph):
+        """
+        Specify the forward propagation of PAST
+        
+        Parameters
+        --------
+        x
+            preprocessed target gene expression matrix
+        knn_graph
+            k-NN graph constructed with the target spatial coordintes
+        
+        Returns
+        ------
+        x_cons
+            reconstructed target gene expression matrix
+        mu
+            mean vector, also denoted as latent embeddings of target data
+        lgvar
+            log variance vector of target data
+        enc_attn
+            attention weight of encoder
+        dec_attn
+            attention weight of decoder
+        """
         mu, logvar, enc_attn = self.encoder(x, knn_graph)
         x_lat = self.reparameterize(mu, logvar)
         x_cons, dec_attn = self.decoder(x_lat, knn_graph)

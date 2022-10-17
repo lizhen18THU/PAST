@@ -5,7 +5,8 @@
 API
 ====
 
-Import PAST
+Import PAST with::
+    
     import past
 
 
@@ -18,6 +19,8 @@ Model
     :toctree: .
     
     Model.PAST
+    Model.PAST.model_train
+    Model.PAST.output
 
 
 Utils
@@ -36,11 +39,11 @@ Utils
     Utils.visualize
     Utils.Ripplewalk_sampler
     Utils.Ripplewalk_prediction
+    Utils.StDataset
     Utils.optim_parameters
     Utils.spatial_prior_graph
     Utils.load_noise
     Utils.svm_annotation
-    Utils.StDataset
     Utils.DLPFC_split
 
 

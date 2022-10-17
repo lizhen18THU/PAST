@@ -69,7 +69,7 @@ def cluster_refine(pred, spatial_mtx, num_nbs=6):
 
     Returns
     ------
-    refined_label
+    list
         refined labels
     """
 
@@ -109,7 +109,7 @@ def default_louvain(adata, refine=False, num_nbs=6, use_rep="embedding"):
 
     Returns
     ------
-    adata
+    scanpy.anndata
         target dataset of anndata format with default louvain clustering result stored in adata.obs["Dlouvain"] and
         refined clustering result stored in adata.obs["Dlouvain_refined"] if refined is True
     """
@@ -139,7 +139,7 @@ def default_leiden(adata, refine=False, num_nbs=6, use_rep="embedding"):
 
     Returns
     ------
-    adata
+    scanpy.anndata
         target dataset of anndata format with default leiden clustering result stored in adata.obs["Dleiden"] and
         refined clustering result stored in adata.obs["Dleiden_refined"] if refined is True
     """
@@ -177,7 +177,7 @@ def run_louvain(adata, n_cluster, refine=False, num_nbs=6, use_rep="embedding", 
 
     Returns
     ------
-    adata
+    scanpy.anndata
         target dataset of anndata format with searched louvain clustering result stored in adata.obs["Nlouvain"] and
         refined clustering result stored in adata.obs["Nlouvain_refined"] if refined is True
     """
@@ -236,7 +236,7 @@ def run_leiden(adata, n_cluster, refine=False, num_nbs=6, use_rep="STAGATE", ran
 
     Returns
     ------
-    adata
+    scanpy.anndata
         target dataset of anndata format with searched leiden clustering result stored in adata.obs["Nleiden"] and
         refined clustering result stored in adata.obs["Nleiden_refined"] if refined is True
     """
@@ -294,7 +294,7 @@ def mclust_R(adata, num_cluster, refine=False, num_nbs=6, modelNames='EEE', used
 
     Returns
     ------
-    adata
+    scanpy.annndata
         target dataset of anndata format with mclust clustering result stored in adata.obs["mclust"] and
         refined clustering result stored in adata.obs["mclust_refined"] if refined is True
     """

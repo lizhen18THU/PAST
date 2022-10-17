@@ -19,14 +19,14 @@ PAST can also installed from GitHub via::
 
 Dependency
 ----
-
-numba   
-numpy   
-pandas   
-scipy   
-scikit-learn   
-scanpy   
-torch    
+::
+    numba
+    numpy
+    pandas
+    scipy
+    scikit-learn
+    scanpy
+    torch
 
 These dependencies will be automatically installed along with PAST. To implement the mclust algorithm with python, the rpy2 package and the mclust package is needed. See rpy2_ and mclust_ for detail.
 

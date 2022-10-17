@@ -18,10 +18,6 @@ def setup_seed(seed):
     ------
     seed
         Number to be set as random seed for reproducibility
-
-    Returns
-    ------
-    None
     """
 
     np.random.seed(seed)
@@ -50,7 +46,7 @@ def DLPFC_split(adata, dataset_key, anno_key, percentage=1.0, dataset_filter=[No
 
     Returns
     ------
-    adata_final
+    scanpy.anndata
         Downsampled DLPFC of anndata format
     """
 
@@ -89,7 +85,7 @@ def integration(adata_ref, adata):
 
     Returns
     ------
-    adata_ref
+    scanpy.anndata
         reference dataset aligned with target dataset
     """
 
@@ -133,7 +129,7 @@ def geary_genes(adata, n_tops=3000, k=30):
 
     Returns
     ------
-    adata
+    scanpy.anndata
         target dataset of anndata format containing n_top SVGs
     """
 
@@ -186,7 +182,7 @@ def preprocess(adata, min_cells=3, target_sum=None, is_filter_MT=False, n_tops=N
 
     Returns
     ------
-    adata
+    scanpy.anndata
         target dataset of anndata format after preprocessing
     """
 
@@ -226,7 +222,7 @@ def get_bulk(adata_ref, key, min_samples=11, r=0.5):
 
     Returns
     ------
-    adata_bulk
+    scanpy.anndata
         pseudo bulk samples of anndata format
     """
 
@@ -282,10 +278,6 @@ def visualize(adata, keys, use_rep="embedding", library_id=None, spot_size=None,
         spot size for spatial clustering visualization
     plot_spatial
         whether or not to visualize spatial clustering
-
-    Returns
-    ------
-    None
     """
 
     assert isinstance(keys, list)
@@ -371,7 +363,7 @@ class StDataset(Dataset):
         if not isinstance(metric_batch, torch.FloatTensor):
             metric_batch = torch.FloatTensor(metric_batch)
 
-        return (data_batch, knn_batch, metric_batch)
+        return data_batch, knn_batch, metric_batch
 
 
 def Ripplewalk_sampler(graph, r=0.5, batchsize=6400, total_times=10):
@@ -391,7 +383,7 @@ def Ripplewalk_sampler(graph, r=0.5, batchsize=6400, total_times=10):
         
     Returns
     ------
-    subgraph_set
+    list
         a list containing index of sampled sub-graphs
     """
 
@@ -470,7 +462,7 @@ def Ripplewalk_prediction(graph, r=0.5, batchsize=6400):
         
     Returns
     ------
-    subgraph_set
+    list
         a list containing index of sampled sub-graphs
     """
         
@@ -558,7 +550,7 @@ def optim_parameters(net, included=None, excluded=None):
     
     Returns
     ------
-    params
+    list_iterator
         iterator of parameter set to be trained
     """
 
@@ -600,7 +592,7 @@ def spatial_prior_graph(feature_matrix, k_neighbors, v=1):
     
     Returns
     ------
-    spatial_graph
+    scipy.sparse.csr_matrx
         spatial graph of sparse matrix format
     """
     dist = kneighbors_graph(feature_matrix, n_neighbors=k_neighbors, mode="distance").tocoo()
@@ -624,7 +616,7 @@ def load_noise(sdata, mask):
     
     Returns
     ------
-    sdata
+    scanpy.anndata
         target dataset of anndata format with noise
     """
 
@@ -650,6 +642,7 @@ def svm_annotation(ref_mtx, ref_anno, target_mtx):
 
     Returns
     ------
+    numpy.ndarray
         the annotation of target dataset
     """
 
