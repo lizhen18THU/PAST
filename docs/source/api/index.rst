@@ -19,8 +19,6 @@ Model
     :toctree: .
     
     Model.PAST
-    Model.PAST.model_train
-    Model.PAST.output
 
 
 Utils
