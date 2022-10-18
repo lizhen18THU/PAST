@@ -31,13 +31,15 @@ python setup.py install
 ```
 
 ### Dependency
+```
 numba   
 numpy   
 pandas   
 scipy   
 scikit-learn   
 scanpy   
-torch   
+torch
+```
 
 These dependencies will be automatically installed along with PAST. To implement the mclust algorithm with python, the rpy2 package and the mclust package is needed. See [rpy2](https://pypi.org/project/rpy2) and [mclust](https://cran.r-project.org/web/packages/mclust/index.html) for detail.
 
