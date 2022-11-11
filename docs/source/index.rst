@@ -43,5 +43,5 @@ Overview
 
 Citation
 ----
-.. citation:: citation.rst
+.. include:: citation.rst
    :start-line: 2
