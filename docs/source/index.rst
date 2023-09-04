@@ -5,7 +5,7 @@
 
 .. |PyPI| image:: https://img.shields.io/pypi/v/bio-past.svg
    :target: https://pypi.org/project/bio-past
-.. |PyPIDownloads| image:: https://pepy.tech/badge/bio-past
+.. |PyPIDownloads| image:: https://static.pepy.tech/badge/bio-past
    :target: https://pepy.tech/project/bio-past
 .. |Docs| image:: https://readthedocs.org/projects/past/badge/?version=latest
    :target: https://past.readthedocs.io/en/latest/

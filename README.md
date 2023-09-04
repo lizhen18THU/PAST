@@ -1,5 +1,5 @@
 [![PyPI](https://img.shields.io/pypi/v/bio-past.svg)](https://pypi.org/project/bio-past)
-[![Downloads](https://pepy.tech/badge/bio-past)](https://pepy.tech/project/bio-past)
+[![Downloads](https://static.pepy.tech/badge/bio-past)](https://pepy.tech/project/bio-past)
 [![Documentation Status](https://readthedocs.org/projects/past/badge/?version=latest)](https://past.readthedocs.io/en/latest/)
 # PAST: a Prior-based self-Attention method for Spatial Transcriptomics
 
