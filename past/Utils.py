@@ -26,7 +26,6 @@ def setup_seed(seed):
     torch.cuda.manual_seed_all(seed)  # gpus
     torch.backends.cudnn.deterministic = True
 
-
 def DLPFC_split(adata, dataset_key, anno_key, percentage=1.0, dataset_filter=[None]):
     """
     Based on domain annotation and dataset annotation, apply Stratified downsampling to DLPFC dataset
@@ -626,6 +625,33 @@ def load_noise(sdata, mask):
     if sp.issparse(sdata.X):
         sdata.X = sp.csr_matrix
     return sdata.copy()
+
+def coordinate_3d_stack(coordinates, slice_label):
+    """
+    Stack the coordinates of multiple slices to construct 3d coordinates
+    
+    Parameters
+    ------
+    coordinates
+        the original coordinates of each slice
+    slice_label
+        the label indicating slices
+    
+    Returns
+    ------
+    np.ndarray
+        the contructed 3d coordinates
+    """
+    
+    from sklearn.neighbors import DistanceMetric
+    dist = DistanceMetric.get_metric('euclidean')
+    delta = 1e4 * np.max(dist.pairwise(coordinates))
+    
+    slice_label = pd.Series(slice_label) if not isinstance(slice_label, pd.Series) else slice_label
+    z_axis_map = delta * np.arange(slice_label.nunique())
+    z_axis = slice_label.replace({k:v for k, v in zip(slice_label.unique(), z_axis_map)}).values.reshape(-1, 1)
+    
+    return np.concatenate([coordinates, z_axis], axis=1)
 
 def svm_annotation(ref_mtx, ref_anno, target_mtx):
     """
