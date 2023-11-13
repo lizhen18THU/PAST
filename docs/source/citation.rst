@@ -2,5 +2,4 @@ Citation
 ----
 .. role:: small
 
-Li, Z., Chen, X., Zhang, X., Chen, S., & Jiang, R. (2022). PAST: latent feature extraction with a Prior-based self-Attention framework for Spatial Transcriptomics. bioRxiv, 2022.11.09.515447. doi:10.1101/2022.11.09.515447
-
+Zhen Li, Xiaoyang Chen, Xuegong Zhang, Rui Jiang, and Shengquan Chen. "Latent feature extraction with a prior-based self-attention framework for spatial transcriptomics." Genome Research (2023). doi:10.1101/gr.277891.123.
