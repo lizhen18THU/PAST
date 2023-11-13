@@ -7,3 +7,4 @@ scanpy
 torch
 sphinx_autodoc_typehints
 nbsphinx
+sphinx_rtd_theme
